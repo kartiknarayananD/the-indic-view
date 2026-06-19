@@ -1,0 +1,174 @@
+{{!< default}}
+
+{{! ── Navy topic header (Option B) ── }}
+<div class="tag-strip">
+    <div class="tag-strip-inner">
+        <div class="tag-strip-top">
+            <span class="tag-eyebrow-label">Topic</span>
+            {{#tag}}<h1 class="tag-title">{{name}}</h1>{{/tag}}
+            <span class="tag-post-count">·&nbsp;{{plural pagination.total empty='No essays yet' singular='% essay' plural='% essays'}}</span>
+        </div>
+        {{#tag}}
+        {{#if description}}
+        <p class="tag-description">{{description}}</p>
+        {{/if}}
+        {{/tag}}
+    </div>
+</div>
+
+{{#unless pagination.prev}}
+
+{{! ── PAGE 1: featured left + 3 side cards right ── }}
+<div class="tag-above-fold-wrap">
+    <div class="tag-above-fold-inner">
+        <div class="tag-above-fold">
+
+            {{! Featured essay (essay 1) }}
+            {{#foreach posts limit='1'}}
+            <a href="{{url}}" class="tag-featured-card">
+                <div class="tag-featured-image">
+                    {{#if feature_image}}
+                    <img
+                        src="{{img_url feature_image size='l'}}"
+                        alt="{{title}}"
+                        loading="eager"
+                    >
+                    {{/if}}
+                </div>
+                <div class="tag-featured-content">
+                    <span class="tag-featured-badge">Latest Essay</span>
+                    <h2 class="tag-featured-title">{{title}}</h2>
+                    {{#if custom_excerpt}}
+                    <p class="tag-featured-excerpt">{{custom_excerpt}}</p>
+                    {{else if excerpt}}
+                    <p class="tag-featured-excerpt">{{excerpt words='30'}}</p>
+                    {{/if}}
+                    <div class="tag-featured-meta">
+                        <span class="tag-featured-time">{{reading_time}}</span>
+                        <span class="tag-featured-cta">Read Essay →</span>
+                    </div>
+                </div>
+            </a>
+            {{/foreach}}
+
+            {{! Side cards (essays 2–4) with wider images }}
+            <div class="tag-side-list">
+                {{#foreach posts from='2' limit='3'}}
+                <a href="{{url}}" class="tag-side-card">
+                    <div class="tag-side-image">
+                        {{#if feature_image}}
+                        <img
+                            src="{{img_url feature_image size='s'}}"
+                            alt="{{title}}"
+                            loading="lazy"
+                        >
+                        {{/if}}
+                    </div>
+                    <div class="tag-side-content">
+                        <p class="tag-side-title">{{title}}</p>
+                        {{#if custom_excerpt}}
+                        <p class="tag-side-excerpt">{{custom_excerpt}}</p>
+                        {{else if excerpt}}
+                        <p class="tag-side-excerpt">{{excerpt words='20'}}</p>
+                        {{/if}}
+                        <span class="tag-side-time">{{reading_time}}</span>
+                    </div>
+                </a>
+                {{/foreach}}
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{{! ── Latest Essays scroll row — only renders when there are 5+ essays ── }}
+{{#foreach posts from='5' limit='20'}}
+{{#if @first}}
+<section class="tag-row-section">
+    <div class="tag-row-inner">
+        <div class="tag-row-header">
+            <h3 class="tag-row-label">Latest Essays</h3>
+            {{#tag}}<a href="{{url}}" class="tag-row-see-all">See all →</a>{{/tag}}
+        </div>
+        <div class="tag-row-scroll">
+{{/if}}
+            <a href="{{url}}" class="tag-scroll-card">
+                <div class="tag-scroll-card-image">
+                    {{#if feature_image}}
+                    <img
+                        src="{{img_url feature_image size='s'}}"
+                        alt="{{title}}"
+                        loading="lazy"
+                    >
+                    {{/if}}
+                </div>
+                <div class="tag-scroll-card-content">
+                    <p class="tag-scroll-card-title">{{title}}</p>
+                    {{#if custom_excerpt}}
+                    <p class="tag-scroll-card-excerpt">{{custom_excerpt}}</p>
+                    {{else if excerpt}}
+                    <p class="tag-scroll-card-excerpt">{{excerpt words='15'}}</p>
+                    {{/if}}
+                    <span class="tag-scroll-card-time">{{reading_time}}</span>
+                </div>
+            </a>
+{{#if @last}}
+        </div>
+    </div>
+</section>
+{{/if}}
+{{/foreach}}
+
+{{! ── Editor's Picks scroll row — only renders when starred essays exist for this tag ── }}
+{{#foreach posts filter='featured:true' limit='10'}}
+{{#if @first}}
+<section class="tag-row-section tag-row-section--picks">
+    <div class="tag-row-inner">
+        <div class="tag-row-header">
+            <h3 class="tag-row-label">Editor's Picks</h3>
+            <span class="tag-row-badge">Curated</span>
+        </div>
+        <div class="tag-row-scroll">
+{{/if}}
+            <a href="{{url}}" class="tag-scroll-card">
+                <div class="tag-scroll-card-image">
+                    {{#if feature_image}}
+                    <img
+                        src="{{img_url feature_image size='s'}}"
+                        alt="{{title}}"
+                        loading="lazy"
+                    >
+                    {{/if}}
+                </div>
+                <div class="tag-scroll-card-content">
+                    <p class="tag-scroll-card-title">{{title}}</p>
+                    {{#if custom_excerpt}}
+                    <p class="tag-scroll-card-excerpt">{{custom_excerpt}}</p>
+                    {{else if excerpt}}
+                    <p class="tag-scroll-card-excerpt">{{excerpt words='15'}}</p>
+                    {{/if}}
+                    <span class="tag-scroll-card-time">{{reading_time}}</span>
+                </div>
+            </a>
+{{#if @last}}
+        </div>
+    </div>
+</section>
+{{/if}}
+{{/foreach}}
+
+{{else}}
+
+{{! ── PAGE 2+: Full post grid ── }}
+<div class="tag-all-essays-wrap">
+    <div class="tag-all-essays-inner">
+        <div class="post-feed">
+            {{#foreach posts}}
+                {{> post-card}}
+            {{/foreach}}
+        </div>
+        {{pagination}}
+    </div>
+</div>
+
+{{/unless}}

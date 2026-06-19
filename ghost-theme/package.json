@@ -1,0 +1,28 @@
+{
+  "name": "indic-view",
+  "description": "The Indic View — a premium Indian literary magazine theme for Ghost",
+  "version": "2.0.1",
+  "engines": {
+    "ghost": ">=5.0.0"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Kartik Narayanan",
+    "email": "kartikmridangam88@gmail.com",
+    "url": "https://the-indic-view-prod.fly.dev"
+  },
+  "keywords": [
+    "ghost-theme"
+  ],
+  "config": {
+    "posts_per_page": 10,
+    "image_sizes": {
+      "xs": { "width": 150 },
+      "s": { "width": 300 },
+      "m": { "width": 600 },
+      "l": { "width": 1000 },
+      "xl": { "width": 2000 }
+    },
+    "card_assets": true
+  }
+}

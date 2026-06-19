@@ -1,0 +1,60 @@
+<footer class="site-footer">
+    <div class="footer-tricolor-strip"></div>
+    <div class="footer-inner">
+        <div class="footer-top">
+            <div class="footer-brand">
+                <a href="{{@site.url}}" class="footer-logo-link" aria-label="{{@site.title}} home">
+                    <img
+                        src="{{asset 'images/logo-icon.png'}}"
+                        alt="{{@site.title}}"
+                        class="footer-logo"
+                        width="80"
+                        loading="lazy"
+                    >
+                </a>
+                <p class="footer-tagline">Rationalism. Stories. Perspective.</p>
+            </div>
+
+            <div class="footer-links-grid">
+                <div class="footer-col">
+                    <h4 class="footer-col-heading">Explore</h4>
+                    <ul class="footer-col-list">
+                        {{#foreach @site.navigation}}
+                            <li><a href="{{url}}" class="footer-link">{{label}}</a></li>
+                        {{/foreach}}
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4 class="footer-col-heading">Read by Topic</h4>
+                    <ul class="footer-col-list">
+                        {{#get "tags" limit="6"}}
+                            {{#foreach tags}}
+                                <li><a href="{{url}}" class="footer-link">{{name}}</a></li>
+                            {{/foreach}}
+                        {{/get}}
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4 class="footer-col-heading">Connect</h4>
+                    <ul class="footer-col-list">
+                        <li><a href="#/portal/signup" class="footer-link" data-portal="signup">Subscribe Free</a></li>
+                        <li><a href="#/portal/account" class="footer-link" data-portal="account">Your Account</a></li>
+                        {{#if @site.twitter_url}}
+                            <li><a href="{{@site.twitter_url}}" class="footer-link" target="_blank" rel="noopener noreferrer">Twitter / X</a></li>
+                        {{/if}}
+                        {{#if @site.facebook_url}}
+                            <li><a href="{{@site.facebook_url}}" class="footer-link" target="_blank" rel="noopener noreferrer">Facebook</a></li>
+                        {{/if}}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p class="footer-copy">
+                &copy; {{date format="YYYY"}} {{@site.title}} &middot; All rights reserved
+            </p>
+            <p class="footer-motto">No ads. No algorithms. Just ideas.</p>
+        </div>
+    </div>
+</footer>

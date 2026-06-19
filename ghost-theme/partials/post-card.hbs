@@ -1,0 +1,53 @@
+<article class="post-card{{#unless feature_image}} no-image{{/unless}} js-animate-card">
+    {{#if feature_image}}
+    <a href="{{url}}" class="post-card-image-link" tabindex="-1" aria-hidden="true">
+        <div class="post-card-image-wrap">
+            <img
+                class="post-card-image"
+                src="{{img_url feature_image size='m'}}"
+                srcset="{{img_url feature_image size='s'}} 300w, {{img_url feature_image size='m'}} 600w, {{img_url feature_image size='l'}} 1000w"
+                sizes="(max-width: 700px) 100vw, 50vw"
+                alt="{{title}}"
+                loading="lazy"
+            >
+        </div>
+    </a>
+    {{/if}}
+    <div class="post-card-content">
+        {{#if primary_tag}}
+        <div class="post-card-tags">
+            <a href="{{primary_tag.url}}" class="post-card-tag tag-{{primary_tag.slug}}">{{primary_tag.name}}</a>
+        </div>
+        {{/if}}
+        <h2 class="post-card-title">
+            <a href="{{url}}" class="post-card-title-link">{{title}}</a>
+        </h2>
+        {{#if custom_excerpt}}
+        <p class="post-card-excerpt">{{custom_excerpt}}</p>
+        {{else if excerpt}}
+        <p class="post-card-excerpt">{{excerpt words="25"}}</p>
+        {{/if}}
+        <footer class="post-card-footer">
+            {{#if primary_author}}
+            <div class="post-card-author">
+                {{#if primary_author.profile_image}}
+                <img
+                    class="post-card-author-avatar"
+                    src="{{img_url primary_author.profile_image size='xs'}}"
+                    alt="{{primary_author.name}}"
+                    loading="lazy"
+                    width="28"
+                    height="28"
+                >
+                {{/if}}
+                <span class="post-card-author-name">{{primary_author.name}}</span>
+            </div>
+            {{/if}}
+            <div class="post-card-meta">
+                <time class="post-card-date" datetime="{{date format='YYYY-MM-DD'}}">{{date format="D MMM YYYY"}}</time>
+                <span class="post-card-sep" aria-hidden="true">·</span>
+                <span class="post-card-reading-time">{{reading_time}}</span>
+            </div>
+        </footer>
+    </div>
+</article>
