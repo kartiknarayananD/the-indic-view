@@ -1,7 +1,7 @@
 {
   "name": "indic-view",
   "description": "The Indic View — a premium Indian literary magazine theme for Ghost",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "engines": {
     "ghost": ">=5.0.0"
   },

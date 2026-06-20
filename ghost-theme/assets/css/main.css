@@ -1987,6 +1987,7 @@ button { cursor: pointer; border: none; background: none; font: inherit; }
 @media (max-width: 900px) {
     .header-inner { padding: 0 16px; height: 60px; gap: 8px; }
     .header-spacer { height: calc(60px + 3px); }
+    .header-left { flex: 1; min-width: 0; }
     .site-nav { display: none; }
 
     /* Hide subscribe btn in header on mobile — it lives in the drawer */
@@ -2054,7 +2055,18 @@ button { cursor: pointer; border: none; background: none; font: inherit; }
     .post-footer { padding: 0 16px 36px; }
     .post-footer-tags { flex-wrap: wrap; gap: 6px; }
 
-    .post-action-bar { padding: 0 12px; }
+    .post-action-bar {
+        padding: 0;
+        overflow-x: auto;
+        overflow-y: visible;
+        justify-content: flex-start;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .post-action-bar::-webkit-scrollbar { display: none; }
+    .post-action-bar > * { flex-shrink: 0; }
+    .action-bar-group:first-child { padding-left: 12px; }
+    .action-bar-group:last-child { padding-right: 12px; }
     .action-bar-label { display: none; }
 
     /* Related posts */
@@ -2085,21 +2097,27 @@ button { cursor: pointer; border: none; background: none; font: inherit; }
    • Force light: html.light (cookie tiv-theme=light — overrides OS dark)
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-/* ─── Comments: cream island in dark mode ────────────────────────────────────── */
-/* We use colorScheme="light" in the template so Ghost renders a white widget.    */
-/* In dark mode we wrap the inner container in a cream card rather than inverting */
-/* the iframe — inversion caused pink/black rendering artefacts.                  */
+/* ─── Comments: dark mode container ─────────────────────────────────────────── */
+/* Ghost widget uses colorScheme="light" so the iframe is always white.           */
+/* In dark mode we clip the white iframe with overflow:hidden so it looks         */
+/* intentional, and add a subtle border to frame it against the dark background.  */
 @media (prefers-color-scheme: dark) {
     :root:not(.light) .post-comments-inner {
-        background: #FAF8F3;
-        border-radius: 8px;
+        background: transparent;
+        border-radius: 12px;
+        overflow: hidden;
         margin: 24px auto;
+        border: 1px solid var(--border);
+        box-shadow: 0 4px 32px rgba(0,0,0,0.4);
     }
 }
 html.dark .post-comments-inner {
-    background: #FAF8F3;
-    border-radius: 8px;
+    background: transparent;
+    border-radius: 12px;
+    overflow: hidden;
     margin: 24px auto;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.4);
 }
 html.light .post-comments iframe { filter: none; }
 
