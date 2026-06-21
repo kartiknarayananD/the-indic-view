@@ -48,11 +48,31 @@
             {{/get}}
         </ul>
         <div class="mobile-menu-footer">
+            {{#if @member}}
+            <a href="#/portal/account" class="btn btn-outline mobile-subscribe-btn" data-portal="account">{{#if @member.name}}{{@member.name}}{{else}}Your account{{/if}}</a>
+            {{else}}
             <a href="#/portal/signup" class="btn btn-primary mobile-subscribe-btn" data-portal="signup">Subscribe — it&#x27;s free</a>
+            {{/if}}
         </div>
     </nav>
     <div class="mobile-menu-overlay" id="mobileOverlay"></div>
 
+    {{> search}}
+
+    {{!--
+      Shared reaction counts backend (Supabase).
+      Fill in your project URL and the anon/public key below to enable shared,
+      persistent Like / Not-for-me counts. The anon key is safe to expose publicly
+      — the database is locked down with RLS and only allows ±1 via the `react`
+      function (see supabase-setup.sql). Leave blank to fall back to per-browser
+      cookie counts. You can also set this via Ghost Settings → Code injection.
+    --}}
+    <script>
+        window.TIV_SUPABASE = {
+            url: 'https://xxecjlxxghilzdwzczdm.supabase.co',
+            key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4ZWNqbHh4Z2hpbHpkd3pjemRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5OTY0ODEsImV4cCI6MjA5NzU3MjQ4MX0.XKng8vUJz6PzaNFGYDfmYb35Zq5ID-7mut7SXu8keLk'
+        };
+    </script>
     <script src="{{asset 'js/main.js'}}"></script>
     {{ghost_foot}}
 </body>

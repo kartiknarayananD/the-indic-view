@@ -21,17 +21,71 @@
         syncCommentWidget();
     }
 
-    // ─── Ghost comments iframe: clear any old inline filters ────────────────────
-    // Dark mode is handled by a cream-island CSS rule on .post-comments-inner;
-    // no iframe filter is needed. This function removes any stale inline filter.
-    function applyCommentsFilter() {
-        document.querySelectorAll('.post-comments iframe').forEach(function (iframe) {
-            iframe.style.filter = '';
-        });
+    // ─── Ghost comments: sync dark mode ─────────────────────────────────────────
+    // comments-ui renders its widget inside a SAME-ORIGIN <iframe>. Two separate
+    // things control how it looks in dark mode:
+    //   1. data-color-scheme="dark" on the Ghost script → makes the widget add a
+    //      `.dark` class to its internal <section>, styling text/buttons. This is
+    //      set in post.hbs (template default 'dark', inline script flips to light).
+    //   2. The iframe document's own `color-scheme` → controls the browser's
+    //      default iframe backdrop. If left `normal`, the backdrop paints WHITE
+    //      regardless of the widget's internal dark styling — that was the white
+    //      box. We must reach into the iframe and set color-scheme to match.
+    // Parent-page CSS cannot touch anything inside the iframe, which is why every
+    // stylesheet approach failed.
+    function applyCommentsScheme() {
+        var iframe = document.querySelector('#ghost-comments-root iframe');
+        if (!iframe) return false;
+        var idoc;
+        try { idoc = iframe.contentDocument; } catch (e) { return false; }
+        if (!idoc || !idoc.documentElement) return false;
+        idoc.documentElement.style.colorScheme =
+            getEffectiveTheme() === 'dark' ? 'dark' : 'light';
+        return true;
     }
-    applyCommentsFilter();
 
-    function syncCommentWidget() { applyCommentsFilter(); }
+    function syncCommentWidget() {
+        // Keep data-color-scheme in sync (drives the widget's internal styling).
+        var script = document.querySelector('script[data-ghost-comments]');
+        if (script) {
+            script.setAttribute('data-color-scheme',
+                getEffectiveTheme() === 'dark' ? 'dark' : 'light');
+        }
+        // Fix the iframe backdrop (works once the iframe exists).
+        applyCommentsScheme();
+    }
+
+    // The comments iframe is created asynchronously by React after the deferred
+    // bundle loads, and comments-ui may replace it when the user navigates between
+    // sign-in / comment states. Watch #ghost-comments-root and (re)apply the
+    // color-scheme to every iframe that appears, including after it finishes loading.
+    (function watchComments() {
+        var root = document.getElementById('ghost-comments-root');
+        var rootParent = document.querySelector('.post-comments-inner') || document.body;
+        if (!rootParent) return;
+
+        function hook(iframe) {
+            applyCommentsScheme();
+            iframe.addEventListener('load', applyCommentsScheme);
+        }
+
+        // Hook any iframe already present.
+        var existing = document.querySelector('#ghost-comments-root iframe');
+        if (existing) hook(existing);
+
+        var obs = new MutationObserver(function () {
+            var iframe = document.querySelector('#ghost-comments-root iframe');
+            if (iframe && !iframe.__tivHooked) {
+                iframe.__tivHooked = true;
+                hook(iframe);
+            }
+        });
+        obs.observe(rootParent, { childList: true, subtree: true });
+    })();
+
+    function applyCommentsFilter() {
+        // legacy no-op kept for safety
+    }
 
     // ─── Comments panel toggle ───────────────────────────────────────────────────
     var commentsToggleBtn = document.getElementById('commentsToggleBtn');
@@ -209,17 +263,27 @@
     }
 
     // ─── Reactions (Like / Dislike) ──────────────────────────────────────────────
-    // Counts stored in cookies per post slug (no localStorage per user preference)
+    // Shared, persistent counts live in Supabase (window.TIV_SUPABASE = {url, key}).
+    // The browser cookie only remembers THIS reader's own choice (like/dislike/none)
+    // so we can toggle and show the active state — never the counts themselves.
+    // If Supabase isn't configured, we fall back to per-browser cookie counts so the
+    // buttons still work (just not shared across readers).
     var reactionsEl = document.getElementById('postActionBar');
 
     if (reactionsEl) {
         var postSlug = reactionsEl.getAttribute('data-post-slug') || 'post';
+        var memberId = reactionsEl.getAttribute('data-member') || '';
         var likeBtn = document.getElementById('reactionLike');
         var dislikeBtn = document.getElementById('reactionDislike');
         var likeCountEl = document.getElementById('likeCount');
         var dislikeCountEl = document.getElementById('dislikeCount');
 
-        var cookieName = 'tiv_reaction_' + postSlug;
+        var sb = window.TIV_SUPABASE;
+        var hasServer = !!(sb && sb.url && sb.key);
+
+        // Cookie remembers this reader's own choice. Namespaced by member so a
+        // logged-in member's choice follows their account on this browser.
+        var cookieName = 'tiv_reaction_' + postSlug + (memberId ? '_' + memberId.slice(0, 8) : '');
 
         function getCookie(name) {
             var value = '; ' + document.cookie;
@@ -238,73 +302,112 @@
             document.cookie = name + '=' + value + expires + '; path=/; SameSite=Lax';
         }
 
-        function parseReaction() {
+        function parseState() {
             try {
                 var raw = getCookie(cookieName);
-                return raw ? JSON.parse(decodeURIComponent(raw)) : { reaction: null, likes: 0, dislikes: 0 };
+                var s = raw ? JSON.parse(decodeURIComponent(raw)) : null;
+                if (!s) return { reaction: null, likes: 0, dislikes: 0 };
+                return { reaction: s.reaction || null, likes: s.likes || 0, dislikes: s.dislikes || 0 };
             } catch (e) {
                 return { reaction: null, likes: 0, dislikes: 0 };
             }
         }
 
-        function saveReaction(state) {
-            setCookie(cookieName, encodeURIComponent(JSON.stringify(state)), 365);
+        function saveState(s) {
+            // In server mode we only persist the reader's choice; counts come from
+            // Supabase. In fallback mode we keep counts in the cookie too.
+            var payload = hasServer
+                ? { reaction: s.reaction }
+                : { reaction: s.reaction, likes: s.likes, dislikes: s.dislikes };
+            setCookie(cookieName, encodeURIComponent(JSON.stringify(payload)), 365);
         }
 
-        function renderReactions(state) {
-            if (!likeCountEl || !dislikeCountEl) return;
-            likeCountEl.textContent = state.likes;
-            dislikeCountEl.textContent = state.dislikes;
+        function render(s) {
+            if (likeCountEl) likeCountEl.textContent = s.likes;
+            if (dislikeCountEl) dislikeCountEl.textContent = s.dislikes;
             if (likeBtn) {
-                likeBtn.classList.toggle('is-active', state.reaction === 'like');
-                likeBtn.setAttribute('aria-pressed', state.reaction === 'like' ? 'true' : 'false');
+                likeBtn.classList.toggle('is-active', s.reaction === 'like');
+                likeBtn.setAttribute('aria-pressed', s.reaction === 'like' ? 'true' : 'false');
             }
             if (dislikeBtn) {
-                dislikeBtn.classList.toggle('is-active', state.reaction === 'dislike');
-                dislikeBtn.setAttribute('aria-pressed', state.reaction === 'dislike' ? 'true' : 'false');
+                dislikeBtn.classList.toggle('is-active', s.reaction === 'dislike');
+                dislikeBtn.setAttribute('aria-pressed', s.reaction === 'dislike' ? 'true' : 'false');
             }
         }
 
-        var state = parseReaction();
-        renderReactions(state);
-
-        if (likeBtn) {
-            likeBtn.addEventListener('click', function () {
-                if (state.reaction === 'like') {
-                    // Un-like
-                    state.likes = Math.max(0, state.likes - 1);
-                    state.reaction = null;
-                } else {
-                    // Switch from dislike if needed
-                    if (state.reaction === 'dislike') {
-                        state.dislikes = Math.max(0, state.dislikes - 1);
-                    }
-                    state.likes += 1;
-                    state.reaction = 'like';
-                }
-                saveReaction(state);
-                renderReactions(state);
-            });
+        // ── Supabase helpers ──
+        function sbHeaders(extra) {
+            var h = { 'apikey': sb.key, 'Authorization': 'Bearer ' + sb.key };
+            if (extra) Object.keys(extra).forEach(function (k) { h[k] = extra[k]; });
+            return h;
         }
 
-        if (dislikeBtn) {
-            dislikeBtn.addEventListener('click', function () {
-                if (state.reaction === 'dislike') {
-                    // Un-dislike
-                    state.dislikes = Math.max(0, state.dislikes - 1);
-                    state.reaction = null;
-                } else {
-                    // Switch from like if needed
-                    if (state.reaction === 'like') {
-                        state.likes = Math.max(0, state.likes - 1);
+        function fetchCounts() {
+            return fetch(sb.url + '/rest/v1/post_reactions?slug=eq.' +
+                    encodeURIComponent(postSlug) + '&select=likes,dislikes',
+                    { headers: sbHeaders() })
+                .then(function (r) { return r.json(); })
+                .then(function (rows) {
+                    if (rows && rows[0]) {
+                        state.likes = rows[0].likes || 0;
+                        state.dislikes = rows[0].dislikes || 0;
+                    } else {
+                        state.likes = 0;
+                        state.dislikes = 0;
                     }
-                    state.dislikes += 1;
-                    state.reaction = 'dislike';
-                }
-                saveReaction(state);
-                renderReactions(state);
-            });
+                    render(state);
+                })
+                .catch(function () {/* keep optimistic values */});
         }
+
+        // Fire-and-forget atomic increment via the `react` RPC (validates +/-1 only).
+        function react(field, delta) {
+            if (!hasServer) return;
+            fetch(sb.url + '/rest/v1/rpc/react', {
+                method: 'POST',
+                headers: sbHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ p_slug: postSlug, p_field: field, p_delta: delta }),
+                keepalive: true
+            }).catch(function () {});
+        }
+
+        var state = parseState();
+
+        if (hasServer) {
+            // Counts come from the server; cookie only told us our own choice.
+            state.likes = 0;
+            state.dislikes = 0;
+            render(state);
+            fetchCounts();
+        } else {
+            render(state);
+        }
+
+        function applyDelta(target) {
+            var other = target === 'like' ? 'dislike' : 'like';
+            var targetCount = target === 'like' ? 'likes' : 'dislikes';
+            var otherCount = other === 'like' ? 'likes' : 'dislikes';
+
+            if (state.reaction === target) {
+                // Toggle off
+                state[targetCount] = Math.max(0, state[targetCount] - 1);
+                state.reaction = null;
+                react(targetCount, -1);
+            } else {
+                if (state.reaction === other) {
+                    state[otherCount] = Math.max(0, state[otherCount] - 1);
+                    react(otherCount, -1);
+                }
+                state[targetCount] += 1;
+                state.reaction = target;
+                react(targetCount, 1);
+            }
+            saveState(state);
+            render(state);
+        }
+
+        if (likeBtn) likeBtn.addEventListener('click', function () { applyDelta('like'); });
+        if (dislikeBtn) dislikeBtn.addEventListener('click', function () { applyDelta('dislike'); });
     }
 
     /* ── Smart Related Essays ──────────────────────────────────────────── */
@@ -380,5 +483,131 @@
     }
 
     initRelatedEssays();
+
+    /* ── Custom search overlay ─────────────────────────────────────────────
+       Themed replacement for Ghost's default search. Reads the Content API
+       config from the sodo-search script Ghost injects, fetches all posts once,
+       then filters client-side as the user types. */
+    (function initSearch() {
+        var overlay = document.getElementById('tivSearch');
+        var input = document.getElementById('tivSearchInput');
+        var results = document.getElementById('tivSearchResults');
+        var openBtn = document.getElementById('searchToggleBtn');
+        if (!overlay || !input || !results) return;
+
+        // Pull API root + key from whichever Ghost script exposes it.
+        var sodo = document.querySelector('script[data-sodo-search]');
+        var comments = document.querySelector('script[data-ghost-comments]');
+        var apiRoot, apiKey;
+        if (sodo) {
+            apiRoot = sodo.getAttribute('data-sodo-search');
+            apiKey = sodo.getAttribute('data-key');
+        } else if (comments) {
+            apiRoot = comments.getAttribute('data-ghost-comments');
+            apiKey = comments.getAttribute('data-key');
+        }
+        if (apiRoot && apiRoot.charAt(apiRoot.length - 1) !== '/') apiRoot += '/';
+
+        var posts = null;          // cached corpus
+        var loading = false;
+        var lastQuery = '';
+
+        function escapeHtml(str) {
+            return (str || '').replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+
+        function loadPosts() {
+            if (posts || loading || !apiRoot || !apiKey) return Promise.resolve(posts || []);
+            loading = true;
+            var url = apiRoot + 'ghost/api/content/posts/?key=' + encodeURIComponent(apiKey) +
+                '&limit=all&fields=title,url,excerpt&include=tags&order=published_at%20desc';
+            return fetch(url)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    posts = (data.posts || []).map(function (p) {
+                        var tagNames = (p.tags || []).map(function (t) { return t.name; });
+                        return {
+                            title: p.title || '',
+                            url: p.url || '#',
+                            excerpt: p.excerpt || '',
+                            tags: tagNames,
+                            haystack: ((p.title || '') + ' ' + (p.excerpt || '') + ' ' + tagNames.join(' ')).toLowerCase()
+                        };
+                    });
+                    loading = false;
+                    return posts;
+                })
+                .catch(function () { loading = false; posts = []; return posts; });
+        }
+
+        function render(query) {
+            var q = query.trim().toLowerCase();
+            if (!q) {
+                results.innerHTML = '<p class="tiv-search-empty">Start typing to search essays and tags.</p>';
+                return;
+            }
+            if (!posts) {
+                results.innerHTML = '<p class="tiv-search-empty">Searching…</p>';
+                return;
+            }
+            var terms = q.split(/\s+/);
+            var matches = posts.filter(function (p) {
+                return terms.every(function (t) { return p.haystack.indexOf(t) !== -1; });
+            }).slice(0, 8);
+
+            if (!matches.length) {
+                results.innerHTML = '<p class="tiv-search-empty">No essays found for “' + escapeHtml(query.trim()) + '”.</p>';
+                return;
+            }
+            results.innerHTML = matches.map(function (p) {
+                var tag = p.tags.length ? '<span class="tiv-search-tag">' + escapeHtml(p.tags[0]) + '</span>' : '';
+                return '<a class="tiv-search-result" href="' + escapeHtml(p.url) + '" role="option">' +
+                    '<span class="tiv-search-result-title">' + escapeHtml(p.title) + '</span>' +
+                    (p.excerpt ? '<span class="tiv-search-result-excerpt">' + escapeHtml(p.excerpt.slice(0, 120)) + '</span>' : '') +
+                    tag +
+                    '</a>';
+            }).join('');
+        }
+
+        var debounceTimer;
+        input.addEventListener('input', function () {
+            var val = input.value;
+            lastQuery = val;
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(function () { render(val); }, 120);
+        });
+
+        function openSearch() {
+            overlay.classList.add('is-open');
+            overlay.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('search-open');
+            loadPosts().then(function () { if (overlay.classList.contains('is-open')) render(lastQuery); });
+            render(input.value);
+            setTimeout(function () { input.focus(); }, 30);
+        }
+
+        function closeSearch() {
+            overlay.classList.remove('is-open');
+            overlay.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('search-open');
+        }
+
+        if (openBtn) openBtn.addEventListener('click', openSearch);
+
+        overlay.addEventListener('click', function (e) {
+            if (e.target.closest('[data-search-close]')) closeSearch();
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+                e.preventDefault();
+                overlay.classList.contains('is-open') ? closeSearch() : openSearch();
+            } else if (e.key === 'Escape' && overlay.classList.contains('is-open')) {
+                closeSearch();
+            }
+        });
+    })();
 
 })();

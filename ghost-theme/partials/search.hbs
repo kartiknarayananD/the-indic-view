@@ -1,0 +1,29 @@
+{{!--
+  Custom search overlay. Opened by #searchToggleBtn (and Ctrl/Cmd+K).
+  Queries Ghost's Content API and filters client-side — see main.js.
+--}}
+<div class="tiv-search" id="tivSearch" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Search this site">
+    <div class="tiv-search-backdrop" data-search-close></div>
+    <div class="tiv-search-panel" role="document">
+        <div class="tiv-search-bar">
+            <svg class="tiv-search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M13 13L17.5 17.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <input
+                type="search"
+                class="tiv-search-input"
+                id="tivSearchInput"
+                placeholder="Search essays, tags…"
+                autocomplete="off"
+                autocorrect="off"
+                spellcheck="false"
+                aria-label="Search query"
+            >
+            <button class="tiv-search-close" data-search-close aria-label="Close search">
+                <kbd class="tiv-search-esc">Esc</kbd>
+            </button>
+        </div>
+        <div class="tiv-search-results" id="tivSearchResults" role="listbox" aria-label="Search results"></div>
+    </div>
+</div>

@@ -33,9 +33,16 @@
         </nav>
 
         <div class="header-right">
+            {{#if @member}}
+            <a href="#/portal/account" class="btn btn-outline btn-sm nav-account-btn" data-portal="account" aria-label="Your account">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span class="nav-account-label">{{#if @member.name}}{{@member.name}}{{else}}Account{{/if}}</span>
+            </a>
+            {{else}}
             <a href="#/portal/signup" class="btn btn-primary btn-sm nav-subscribe-btn" data-portal="signup">Subscribe</a>
+            {{/if}}
             <div class="header-icons">
-                <button class="search-btn" aria-label="Search" data-ghost-search>
+                <button class="search-btn" id="searchToggleBtn" aria-label="Search">
                     <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
                         <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.6"/>
                         <path d="M13 13L17.5 17.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
