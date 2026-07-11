@@ -160,10 +160,15 @@
         {{/if}}
     </footer>
 
+    {{!-- End-of-article module: an MCQ quiz (loaded from Supabase by slug) when one
+         exists, otherwise a "read next" fallback. Shown to everyone; the subscribe
+         hook inside is added only for non-members by JS. Routing skips read posts. --}}
+    <div id="tivEndModule" class="tiv-end-module" data-slug="{{slug}}" data-member="{{#if @member}}{{@member.uuid}}{{/if}}"></div>
+
     {{!-- Single action ribbon: reactions | share | discussion toggle --}}
     <div class="post-action-bar" id="postActionBar" data-post-slug="{{slug}}" data-member="{{#if @member}}{{@member.uuid}}{{/if}}">
         <div class="action-bar-group">
-            <button class="action-bar-btn reaction-like" id="reactionLike" aria-label="Love this essay" aria-pressed="false">
+            <button class="action-bar-btn reaction-like" id="reactionLike" aria-label="Love this blog" aria-pressed="false">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
                 <span class="action-bar-label">Loved it</span>
                 <span class="action-bar-count" id="likeCount">0</span>
@@ -242,6 +247,7 @@
             <div class="related-essays-grid" id="relatedEssaysGrid">
                 {{#foreach posts}}
                 <a href="{{url}}" class="related-essay-card"
+                    data-slug="{{slug}}"
                     data-tags="{{#foreach tags}}{{slug}}{{#unless @last}},{{/unless}}{{/foreach}}"
                     data-title="{{title}}"
                     data-excerpt="{{#if custom_excerpt}}{{custom_excerpt}}{{else}}{{excerpt words='40'}}{{/if}}"

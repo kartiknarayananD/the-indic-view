@@ -6,7 +6,7 @@
         <div class="tag-strip-top">
             <span class="tag-eyebrow-label">Topic</span>
             {{#tag}}<h1 class="tag-title">{{name}}</h1>{{/tag}}
-            <span class="tag-post-count">·&nbsp;{{plural pagination.total empty='No essays yet' singular='% essay' plural='% essays'}}</span>
+            <span class="tag-post-count">·&nbsp;{{plural pagination.total empty='No blogs yet' singular='% blog' plural='% blogs'}}</span>
         </div>
         {{#tag}}
         {{#if description}}
@@ -36,7 +36,7 @@
                     {{/if}}
                 </div>
                 <div class="tag-featured-content">
-                    <span class="tag-featured-badge">Latest Essay</span>
+                    <span class="tag-featured-badge">Latest Blog</span>
                     <h2 class="tag-featured-title">{{title}}</h2>
                     {{#if custom_excerpt}}
                     <p class="tag-featured-excerpt">{{custom_excerpt}}</p>
@@ -45,7 +45,7 @@
                     {{/if}}
                     <div class="tag-featured-meta">
                         <span class="tag-featured-time">{{reading_time}}</span>
-                        <span class="tag-featured-cta">Read Essay →</span>
+                        <span class="tag-featured-cta">Read Blog →</span>
                     </div>
                 </div>
             </a>
@@ -87,7 +87,7 @@
 <section class="tag-row-section">
     <div class="tag-row-inner">
         <div class="tag-row-header">
-            <h3 class="tag-row-label">Latest Essays</h3>
+            <h3 class="tag-row-label">Latest Blogs</h3>
             {{#tag}}<a href="{{url}}" class="tag-row-see-all">See all →</a>{{/tag}}
         </div>
         <div class="tag-row-scroll">

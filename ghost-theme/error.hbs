@@ -1,0 +1,25 @@
+{{!< default}}
+
+<div class="error-page">
+    <div class="error-page-inner">
+        <div class="error-eyebrow">{{statusCode}}</div>
+        {{#match statusCode 404}}
+        <h1 class="error-title">Page not found</h1>
+        <p class="error-body">The blog you're looking for has moved, been renamed, or never existed. Try browsing by topic below, or head back home.</p>
+        {{else}}
+        <h1 class="error-title">Something went wrong</h1>
+        <p class="error-body">{{#if message}}{{message}}{{else}}An unexpected error occurred. Please try again.{{/if}}</p>
+        {{/match}}
+        <div class="error-actions">
+            <a href="{{@site.url}}" class="btn btn-primary">Back to Home</a>
+            <a href="{{@site.url}}/tag/rationalism/" class="btn btn-outline">Browse Blogs</a>
+        </div>
+        <div class="error-topics">
+            <span class="error-topics-label">Or explore by topic</span>
+            <a href="{{@site.url}}/tag/rationalism/" class="post-card-tag tag-rationalism">Rationalism</a>
+            <a href="{{@site.url}}/tag/unsung-heroes/" class="post-card-tag tag-unsung-heroes">Unsung Heroes</a>
+            <a href="{{@site.url}}/tag/indian-stories/" class="post-card-tag tag-indian-stories">Indian Stories</a>
+            <a href="{{@site.url}}/tag/relationships/" class="post-card-tag tag-relationships">Relationships</a>
+        </div>
+    </div>
+</div>

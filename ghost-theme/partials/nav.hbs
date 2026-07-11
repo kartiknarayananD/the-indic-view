@@ -22,6 +22,9 @@
                 <li class="nav-item">
                     <a href="{{@site.url}}" class="nav-link js-nav-home">Home</a>
                 </li>
+                {{!-- Categories are pulled live: a tag only appears here once it
+                     has at least one published post, so new sections (e.g. Politics)
+                     show up automatically and the bar stays on one row. --}}
                 {{#get "tags" filter="slug:[rationalism,unsung-heroes,indian-stories,relationships,politics-and-ideologies]" limit="10"}}
                     {{#foreach tags}}
                     <li class="nav-item">

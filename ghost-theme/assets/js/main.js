@@ -410,6 +410,177 @@
         if (dislikeBtn) dislikeBtn.addEventListener('click', function () { applyDelta('dislike'); });
     }
 
+    /* ── Read tracker ──────────────────────────────────────────────────────
+       Remembers which posts this reader has finished (localStorage, per-browser).
+       Used to (a) avoid recommending already-read posts and (b) route the
+       end-of-article module toward something unread. */
+    var ReadTracker = (function () {
+        var KEY = 'tiv-reads';
+        var list;
+        try { list = JSON.parse(localStorage.getItem(KEY)) || []; }
+        catch (e) { list = []; }
+        if (!Array.isArray(list)) list = [];
+        return {
+            has: function (slug) { return !!slug && list.indexOf(slug) !== -1; },
+            add: function (slug) {
+                if (!slug || list.indexOf(slug) !== -1) return;
+                list.push(slug);
+                try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+            }
+        };
+    })();
+
+    /* ── End-of-article module: MCQ quiz (Supabase) or "read next" fallback ──
+       Picks a forward destination that the reader hasn't read yet, never the
+       current post. Quiz row's next_url is preferred only if unread; otherwise
+       falls back to the best unread related post, then to a subscribe CTA. */
+    function initEndModule() {
+        var mount = document.getElementById('tivEndModule');
+        if (!mount) return;
+
+        var currentSlug = mount.getAttribute('data-slug') || '';
+        var isMember = (mount.getAttribute('data-member') || '') !== '';
+
+        // Capture candidates NOW, before initRelatedEssays() prunes the grid.
+        var candidates = Array.prototype.slice
+            .call(document.querySelectorAll('.related-essay-card'))
+            .map(function (card) {
+                var tagEl = card.querySelector('.related-essay-tag');
+                return {
+                    slug: card.getAttribute('data-slug') || '',
+                    url: card.getAttribute('href') || '',
+                    title: card.getAttribute('data-title') || '',
+                    excerpt: card.getAttribute('data-excerpt') || '',
+                    tag: tagEl ? tagEl.textContent : ''
+                };
+            });
+
+        function esc(s) {
+            return (s || '').replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+        function slugFromUrl(u) {
+            if (!u) return '';
+            return u.replace(/[\/]+$/, '').split('/').pop();
+        }
+
+        function pickNext(preferUrl, preferTitle, preferTeaser) {
+            if (preferUrl) {
+                var ps = slugFromUrl(preferUrl);
+                if (ps && ps !== currentSlug && !ReadTracker.has(ps)) {
+                    return { url: preferUrl, title: preferTitle, teaser: preferTeaser };
+                }
+            }
+            for (var i = 0; i < candidates.length; i++) {
+                var c = candidates[i];
+                if (c.slug && c.slug !== currentSlug && !ReadTracker.has(c.slug)) {
+                    return { url: c.url, title: c.title, teaser: c.excerpt };
+                }
+            }
+            return null;
+        }
+
+        function subHook() {
+            if (isMember) return '';
+            return '<div class="tiv-quiz-subhook">Enjoying these? ' +
+                '<a href="#/portal/signup" data-portal="signup">Subscribe</a> for a new puzzle with every post.</div>';
+        }
+
+        function nextBlock(next, label) {
+            if (next) {
+                return '<div class="tiv-quiz-next">' +
+                    '<span class="tiv-quiz-next-label">' + esc(label) + '</span>' +
+                    '<a class="tiv-quiz-next-link" href="' + esc(next.url) + '">' +
+                    esc(next.title) + ' <span aria-hidden="true">→</span></a>' +
+                    (next.teaser ? '<p class="tiv-quiz-next-teaser">' + esc(next.teaser) + '</p>' : '') +
+                    '</div>' + subHook();
+            }
+            // Everything read.
+            if (isMember) {
+                return '<div class="tiv-quiz-next"><p class="tiv-quiz-next-teaser">' +
+                    'You’ve explored the whole archive. New pieces are on the way.</p></div>';
+            }
+            return '<div class="tiv-quiz-next">' +
+                '<span class="tiv-quiz-next-label">That’s everything, for now</span>' +
+                '<a class="tiv-quiz-next-link" href="#/portal/signup" data-portal="signup">' +
+                'Subscribe so you don’t miss the next one <span aria-hidden="true">→</span></a>' +
+                '</div>';
+        }
+
+        function renderQuiz(quiz) {
+            var next = pickNext(quiz.next_url, quiz.next_title, quiz.next_teaser);
+            var opts = Array.isArray(quiz.options) ? quiz.options : [];
+            var optsHtml = opts.map(function (o) {
+                return '<button class="tiv-quiz-opt" data-correct="' + (o.c ? '1' : '0') + '">' +
+                    esc(o.t) + '</button>';
+            }).join('');
+
+            mount.innerHTML =
+                '<div class="tiv-quiz-card">' +
+                    '<div class="tiv-quiz-eyebrow">Before you go, a quick one</div>' +
+                    '<p class="tiv-quiz-question">' + esc(quiz.question) + '</p>' +
+                    '<div class="tiv-quiz-options">' + optsHtml + '</div>' +
+                    '<div class="tiv-quiz-reveal" hidden>' +
+                        '<div class="tiv-quiz-verdict"></div>' +
+                        nextBlock(next, 'Go deeper') +
+                    '</div>' +
+                '</div>';
+
+            var answered = false;
+            var buttons = mount.querySelectorAll('.tiv-quiz-opt');
+            var reveal = mount.querySelector('.tiv-quiz-reveal');
+            var verdict = mount.querySelector('.tiv-quiz-verdict');
+
+            Array.prototype.forEach.call(buttons, function (btn) {
+                btn.addEventListener('click', function () {
+                    if (answered) return;
+                    answered = true;
+                    var correct = btn.getAttribute('data-correct') === '1';
+                    Array.prototype.forEach.call(buttons, function (b) {
+                        b.disabled = true;
+                        if (b.getAttribute('data-correct') === '1') b.classList.add('is-correct');
+                        else if (b === btn) b.classList.add('is-wrong');
+                        else b.classList.add('is-dim');
+                    });
+                    verdict.textContent = correct
+                        ? (quiz.verdict_correct || 'Correct.')
+                        : (quiz.verdict_wrong || 'Not quite.');
+                    verdict.classList.add(correct ? 'is-correct' : 'is-wrong');
+                    reveal.hidden = false;
+                });
+            });
+        }
+
+        function renderFallback() {
+            var next = pickNext(null);
+            mount.innerHTML =
+                '<div class="tiv-quiz-card tiv-quiz-card--plain">' + nextBlock(next, 'Read next') + '</div>';
+        }
+
+        // Mark this post read once the reader actually reaches the end module.
+        if ('IntersectionObserver' in window) {
+            var io = new IntersectionObserver(function (entries) {
+                if (entries[0].isIntersecting) { ReadTracker.add(currentSlug); io.disconnect(); }
+            }, { threshold: 0.4 });
+            io.observe(mount);
+        } else {
+            ReadTracker.add(currentSlug);
+        }
+
+        var sb = window.TIV_SUPABASE;
+        if (!sb || !sb.url || !sb.key) { renderFallback(); return; }
+
+        fetch(sb.url + '/rest/v1/post_quizzes?slug=eq.' + encodeURIComponent(currentSlug) + '&select=*',
+            { headers: { 'apikey': sb.key, 'Authorization': 'Bearer ' + sb.key } })
+            .then(function (r) { return r.json(); })
+            .then(function (rows) {
+                if (rows && rows[0]) renderQuiz(rows[0]);
+                else renderFallback();
+            })
+            .catch(function () { renderFallback(); });
+    }
+
     /* ── Smart Related Essays ──────────────────────────────────────────── */
     function initRelatedEssays() {
         var section = document.querySelector('.related-essays');
@@ -466,8 +637,15 @@
             return { card: card, score: score };
         });
 
-        /* Sort descending, keep top 3 */
+        /* Sort by relevance, then float unread posts ahead of read ones so we
+           don't recommend things they've already finished. Read posts stay as a
+           fallback (stable sort) so the section is never left empty. */
         scored.sort(function(a, b) { return b.score - a.score; });
+        scored.sort(function(a, b) {
+            var ar = ReadTracker.has(a.card.getAttribute('data-slug')) ? 1 : 0;
+            var br = ReadTracker.has(b.card.getAttribute('data-slug')) ? 1 : 0;
+            return ar - br;
+        });
 
         scored.forEach(function(item, i) {
             if (i < 3) {
@@ -482,6 +660,7 @@
         }
     }
 
+    initEndModule();
     initRelatedEssays();
 
     /* ── Custom search overlay ─────────────────────────────────────────────
@@ -545,7 +724,7 @@
         function render(query) {
             var q = query.trim().toLowerCase();
             if (!q) {
-                results.innerHTML = '<p class="tiv-search-empty">Start typing to search essays and tags.</p>';
+                results.innerHTML = '<p class="tiv-search-empty">Start typing to search blogs and tags.</p>';
                 return;
             }
             if (!posts) {
@@ -558,7 +737,7 @@
             }).slice(0, 8);
 
             if (!matches.length) {
-                results.innerHTML = '<p class="tiv-search-empty">No essays found for “' + escapeHtml(query.trim()) + '”.</p>';
+                results.innerHTML = '<p class="tiv-search-empty">No blogs found for “' + escapeHtml(query.trim()) + '”.</p>';
                 return;
             }
             results.innerHTML = matches.map(function (p) {
@@ -607,6 +786,120 @@
             } else if (e.key === 'Escape' && overlay.classList.contains('is-open')) {
                 closeSearch();
             }
+        });
+    })();
+
+    /* ── Scroll-triggered subscribe nudge ────────────────────────────────────
+       Shows a slide-up toast when the reader scrolls past 80% of a post.
+       Only on post pages, only for non-members, only once per session. */
+    (function initScrollNudge() {
+        var isPost = !!document.querySelector('.post-content');
+        var isMember = !!document.querySelector('[data-member]') &&
+                       document.querySelector('[data-member]').getAttribute('data-member') !== '';
+        if (!isPost || isMember) return;
+        if (sessionStorage.getItem('tiv-nudge-dismissed')) return;
+
+        var nudge = document.getElementById('tivScrollNudge');
+        if (!nudge) return;
+
+        var dismissed = false;
+        // True while the big end-of-post subscribe banner is on screen — we hide
+        // the floating nudge then so it doesn't cover the banner / action ribbon.
+        var bannerVisible = false;
+
+        function updateNudge() {
+            if (dismissed) return;
+            var article = document.querySelector('.post-content');
+            if (!article) return;
+            var articleBottom = article.getBoundingClientRect().bottom + window.scrollY;
+            var scrolled = window.scrollY + window.innerHeight;
+            var pastThreshold = scrolled / articleBottom >= 0.80;
+            // Show only after 80% AND while the big banner isn't yet in view.
+            nudge.classList.toggle('is-visible', pastThreshold && !bannerVisible);
+        }
+
+        function dismissNudge() {
+            dismissed = true;
+            nudge.classList.remove('is-visible');
+            sessionStorage.setItem('tiv-nudge-dismissed', '1');
+        }
+
+        // Watch the end-of-article module; hide the floating pill when it's on
+        // screen so the two never compete for attention at the end of the post.
+        var banner = document.getElementById('tivEndModule');
+        if (banner && 'IntersectionObserver' in window) {
+            new IntersectionObserver(function (entries) {
+                bannerVisible = entries[0].isIntersecting;
+                updateNudge();
+            }, { threshold: 0.01 }).observe(banner);
+        }
+
+        window.addEventListener('scroll', updateNudge, { passive: true });
+
+        var closeBtn = document.getElementById('tivScrollNudgeClose');
+        if (closeBtn) closeBtn.addEventListener('click', dismissNudge);
+
+        var nudgeBtn = nudge.querySelector('[data-portal]');
+        if (nudgeBtn) nudgeBtn.addEventListener('click', dismissNudge);
+    })();
+
+    /* ── Post-signup share nudge ─────────────────────────────────────────────
+       Ghost fires a custom event on the window when a member signs up.
+       We intercept it and show a branded share modal asking them to spread
+       the word to one friend. */
+    (function initShareNudge() {
+        var modal = document.getElementById('tivShareNudge');
+        if (!modal) return;
+
+        var currentUrl = window.location.href;
+        var currentTitle = document.title;
+
+        function openShareNudge() {
+            modal.classList.add('is-visible');
+            modal.removeAttribute('aria-hidden');
+        }
+
+        function closeShareNudge() {
+            modal.classList.remove('is-visible');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+
+        // Ghost fires this on the window after portal signup completes
+        window.addEventListener('ghost:member-signup', openShareNudge);
+
+        var closeBtn = document.getElementById('tivShareNudgeClose');
+        if (closeBtn) closeBtn.addEventListener('click', closeShareNudge);
+
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) closeShareNudge();
+        });
+
+        // Use the live origin so share links follow whatever domain the site runs on.
+        var siteOrigin = window.location.origin;
+
+        var twitterBtn = document.getElementById('tivShareNudgeTwitter');
+        if (twitterBtn) twitterBtn.addEventListener('click', function () {
+            var text = encodeURIComponent('Just subscribed to The Indic View by @KartikNarayanan. Great reads on rationalism, history and forgotten India.');
+            var url = encodeURIComponent(siteOrigin);
+            window.open('https://twitter.com/intent/tweet?text=' + text + '&url=' + url, '_blank', 'noopener');
+            closeShareNudge();
+        });
+
+        var whatsappBtn = document.getElementById('tivShareNudgeWhatsapp');
+        if (whatsappBtn) whatsappBtn.addEventListener('click', function () {
+            var text = encodeURIComponent('Check out The Indic View, blogs on rationalism, history and forgotten India: ' + siteOrigin);
+            window.open('https://wa.me/?text=' + text, '_blank', 'noopener');
+            closeShareNudge();
+        });
+
+        var copyBtn = document.getElementById('tivShareNudgeCopy');
+        if (copyBtn) copyBtn.addEventListener('click', function () {
+            window.copyPostLink(siteOrigin);
+            closeShareNudge();
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && modal.classList.contains('is-visible')) closeShareNudge();
         });
     })();
 

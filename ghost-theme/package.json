@@ -1,7 +1,7 @@
 {
   "name": "indic-view",
   "description": "The Indic View — a premium Indian literary magazine theme for Ghost",
-  "version": "2.1.6",
+  "version": "2.4.1",
   "engines": {
     "ghost": ">=5.0.0"
   },
@@ -9,7 +9,7 @@
   "author": {
     "name": "Kartik Narayanan",
     "email": "kartikmridangam88@gmail.com",
-    "url": "https://the-indic-view-prod.fly.dev"
+    "url": "https://theindicview.com"
   },
   "keywords": [
     "ghost-theme"
