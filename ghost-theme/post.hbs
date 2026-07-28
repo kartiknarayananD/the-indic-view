@@ -20,7 +20,7 @@
                 {{#if primary_author}}
                 <div class="post-author-info">
                     {{#if primary_author.profile_image}}
-                    <a href="{{primary_author.url}}">
+                    <a href="/about/">
                         <img
                             class="post-author-avatar"
                             src="{{img_url primary_author.profile_image size='xs'}}"
@@ -32,7 +32,7 @@
                     </a>
                     {{/if}}
                     <div class="post-author-details">
-                        <a href="{{primary_author.url}}" class="post-author-name">{{primary_author.name}}</a>
+                        <a href="/about/" class="post-author-name">{{primary_author.name}}</a>
                         <div class="post-meta-sub">
                             <time datetime="{{date format='YYYY-MM-DD'}}">{{date format="D MMMM YYYY"}}</time>
                             <span class="post-card-sep" aria-hidden="true">·</span>

@@ -1,0 +1,4 @@
+
+# Theme build artifacts (upload zips)
+*.zip
+indic-view-*.zip

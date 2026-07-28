@@ -1,11 +1,10 @@
 {{!< default}}
 
 {{!--
-  About page template.
-  Ghost applies this automatically to the page with slug "about".
-  The hero pulls the site's primary author (name, photo, bio, social links).
-  The editable body below renders whatever you write in the Ghost editor —
-  put your passion, your story, and why you started the blog there.
+  About page template (slug "about").
+  Hero shows the page title (set it to your name) + eyebrow + tagline (page excerpt).
+  The inset photo is the page's Feature Image, floated top-left of your write-up,
+  with LinkedIn + Instagram icons beneath it. Your story goes in the page body.
 --}}
 
 {{#page}}
@@ -23,57 +22,31 @@
         </div>
     </header>
 
-    {{#get "authors" limit="1" include="count.posts" order="created_at asc"}}
-        {{#foreach authors}}
-        <aside class="about-profile">
-            <div class="about-profile-inner">
-                {{#if profile_image}}
+    <div class="about-body-wrapper">
+        <section class="post-content gh-content about-content">
+
+            <div class="about-inset">
+                {{#if feature_image}}
                 <img
-                    src="{{img_url profile_image size='s'}}"
-                    alt="{{name}}"
-                    class="about-profile-avatar"
-                    width="96"
-                    height="96"
+                    class="about-inset-photo"
+                    src="{{img_url feature_image size='m'}}"
+                    alt="{{#if feature_image_alt}}{{feature_image_alt}}{{else}}{{title}}{{/if}}"
+                    width="160" height="160"
                     loading="eager"
                 >
                 {{/if}}
-                <div class="about-profile-meta">
-                    <h2 class="about-profile-name">{{name}}</h2>
-                    {{#if bio}}
-                    <p class="about-profile-bio">{{bio}}</p>
-                    {{/if}}
-                    <div class="about-profile-links">
-                        {{#if website}}
-                        <a href="{{website}}" target="_blank" rel="noopener noreferrer" class="about-profile-link">Website</a>
-                        {{/if}}
-                        {{#if twitter}}
-                        <a href="https://twitter.com/{{twitter}}" target="_blank" rel="noopener noreferrer" class="about-profile-link">X / Twitter</a>
-                        {{/if}}
-                        {{#if facebook}}
-                        <a href="https://facebook.com/{{facebook}}" target="_blank" rel="noopener noreferrer" class="about-profile-link">Facebook</a>
-                        {{/if}}
-                    </div>
+                <div class="about-inset-social">
+                    <a href="https://www.linkedin.com/in/dkartikmba/" target="_blank" rel="noopener noreferrer" class="about-social-link" aria-label="LinkedIn">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.47-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.07 2.07 0 1 1 0-4.13 2.07 2.07 0 0 1 0 4.13zm1.78 13.02H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z"/></svg>
+                    </a>
+                    <a href="https://www.instagram.com/ikartiknarayanan" target="_blank" rel="noopener noreferrer" class="about-social-link" aria-label="Instagram">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".85" fill="currentColor" stroke="none"/></svg>
+                    </a>
                 </div>
             </div>
-        </aside>
-        {{/foreach}}
-    {{/get}}
 
-    {{#if feature_image}}
-    <figure class="about-feature-image">
-        <img
-            src="{{img_url feature_image size='xl'}}"
-            srcset="{{img_url feature_image size='m'}} 600w, {{img_url feature_image size='l'}} 1000w, {{img_url feature_image size='xl'}} 2000w"
-            sizes="(max-width: 1000px) 100vw, 1000px"
-            alt="{{#if feature_image_alt}}{{feature_image_alt}}{{else}}{{title}}{{/if}}"
-            loading="lazy"
-        >
-    </figure>
-    {{/if}}
-
-    <div class="about-body-wrapper">
-        <section class="post-content gh-content about-content">
             {{content}}
+
         </section>
     </div>
 

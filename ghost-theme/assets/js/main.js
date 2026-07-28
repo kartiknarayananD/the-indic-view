@@ -793,6 +793,8 @@
        Shows a slide-up toast when the reader scrolls past 80% of a post.
        Only on post pages, only for non-members, only once per session. */
     (function initScrollNudge() {
+        // Skip the subscribe nudge on the interactive questionnaire page.
+        if (location.pathname.replace(/\/+$/, '') === '/the-india-you-missed') return;
         var isPost = !!document.querySelector('.post-content');
         var isMember = !!document.querySelector('[data-member]') &&
                        document.querySelector('[data-member]').getAttribute('data-member') !== '';

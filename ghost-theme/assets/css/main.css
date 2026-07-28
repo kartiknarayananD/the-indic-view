@@ -281,6 +281,19 @@ button { cursor: pointer; border: none; background: none; font: inherit; }
     background: var(--bg-soft);
 }
 
+.nav-ig-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+    transition: color var(--transition), background var(--transition);
+}
+.nav-ig-btn svg { display: block; flex-shrink: 0; }
+.nav-ig-btn:hover { color: var(--saffron); background: var(--bg-soft); }
+
 .mobile-menu-btn {
     display: none;
     flex-direction: column;
@@ -2809,6 +2822,62 @@ html.dark .tiv-quiz-verdict.is-wrong   { color: #FF8A8A; }
     line-height: 1.6;
     color: var(--muted);
     margin: 0;
+}
+
+/* About: inset photo + social icons, write-up wraps around it (redesigned) */
+.about-inset {
+    float: left;
+    width: 160px;
+    margin: 4px 28px 16px 0;
+}
+.about-content .about-inset-photo {
+    width: 160px;
+    height: 160px;
+    border-radius: 14px;
+    object-fit: cover;
+    object-position: 62% 28%;   /* keep the face centred in the crop */
+    border: 1px solid var(--border);
+    margin: 0;
+    display: block;
+}
+.about-inset-social {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 14px;
+}
+.about-content .about-inset-social a.about-social-link {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color var(--transition), border-color var(--transition);
+}
+.about-content .about-inset-social a.about-social-link:hover {
+    color: var(--saffron);
+    border-color: var(--saffron);
+}
+.about-inset-social svg { width: 20px; height: 20px; display: block; }
+/* First body line should top-align with the photo, not inherit the stack margin */
+.about-content .about-inset + * { margin-top: 0; }
+/* Clear the float so the CTA below never overlaps */
+.about-content::after { content: ""; display: block; clear: both; }
+
+@media (max-width: 600px) {
+    .about-inset {
+        float: none;
+        width: auto;
+        margin: 0 auto 22px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .about-content .about-inset-photo { width: 140px; height: 140px; }
 }
 
 .about-profile {
